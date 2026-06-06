@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chest — Play Chess</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -182,19 +183,41 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     gap: 0;
   }
-  .rank-labels, .file-labels {
+  .board-and-ranks {
     display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0;
+  }
+  .rank-labels {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
     font-family: 'Space Mono', monospace;
     font-size: 0.65rem;
     color: rgba(201,148,58,0.6);
     letter-spacing: 0.05em;
     user-select: none;
+    width: 20px;
+    text-align: center;
+    height: 560px;
   }
-  .file-labels { flex-direction: row; width: 560px; justify-content: space-around; padding: 4px 0; }
-  .rank-labels { flex-direction: column; height: 560px; justify-content: space-around; padding: 0 6px; }
+  .file-labels {
+    display: flex;
+    flex-direction: row;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: rgba(201,148,58,0.6);
+    letter-spacing: 0.05em;
+    user-select: none;
+    width: 560px;
+    justify-content: space-around;
+    padding: 4px 0;
+    margin-left: 20px;
+  }
   .board-row { display: flex; }
 
   #chess-board {
@@ -344,6 +367,22 @@
   .mode-btn.active { opacity: 1; border-color: var(--gold); color: var(--gold); background: rgba(201,148,58,0.1); }
   .mode-btn:hover { opacity: 0.9; }
 
+
+  /* ─── DIFFICULTY SELECTOR ─── */
+  .diff-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 0.06em;
+    padding: 7px 10px;
+    border: 1px solid rgba(245,239,228,0.2);
+    background: transparent;
+    color: var(--cream); opacity: 0.55;
+    border-radius: 2px; cursor: pointer;
+    transition: all 0.18s;
+  }
+  .diff-btn.active { opacity: 1; border-color: var(--gold); color: var(--gold); background: rgba(201,148,58,0.1); }
+  .diff-btn:hover { opacity: 0.85; }
+  #difficulty-panel { display: none; }
+  #difficulty-panel.visible { display: block; }
   /* ─── SCROLLBAR ─── */
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -364,18 +403,292 @@
     #chess-board { grid-template-columns: repeat(8,44px); grid-template-rows: repeat(8,44px); }
     .square { width:44px; height:44px; }
     .piece { font-size: 28px; }
-    .file-labels { width: 352px; }
-    .rank-labels { height: 352px; }
-    .side-panel { width: 100%; max-width: 352px; }
+    .file-labels { width: 352px; margin-left: 20px; }
+    .rank-labels { height: 352px; width: 20px; }
+    .side-panel { width: 100%; max-width: 372px; }
     .game-wrapper { gap: 18px; }
+  }
+
+  /* ═══════════════════════════════════════
+     AUTH SCREENS
+  ═══════════════════════════════════════ */
+  #auth-screen {
+    position: fixed; inset: 0; z-index: 200;
+    background: var(--ink);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  #auth-screen.hidden { display: none; }
+
+  .auth-card {
+    background: rgba(245,239,228,0.04);
+    border: 1px solid rgba(201,148,58,0.28);
+    border-radius: 8px;
+    padding: 44px 48px;
+    width: 100%; max-width: 420px;
+    box-shadow: var(--shadow);
+    animation: fadeInUp 0.35s ease;
+  }
+  .auth-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem; font-weight: 900;
+    color: var(--gold);
+    text-align: center;
+    margin-bottom: 4px;
+    letter-spacing: 0.06em;
+  }
+  .auth-tagline {
+    font-family: 'Crimson Pro', serif;
+    font-style: italic;
+    text-align: center;
+    color: var(--sepia);
+    font-size: 0.95rem;
+    margin-bottom: 32px;
+  }
+  .auth-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(201,148,58,0.2);
+    margin-bottom: 28px;
+  }
+  .auth-tab {
+    flex: 1; padding: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem; letter-spacing: 0.14em;
+    text-transform: uppercase;
+    background: none; border: none;
+    color: var(--sepia); cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.18s, border-color 0.18s;
+  }
+  .auth-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  .auth-form { display: flex; flex-direction: column; gap: 14px; }
+  .auth-form.hidden { display: none; }
+
+  .field-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem; letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--sepia);
+    margin-bottom: 5px;
+  }
+  .auth-input {
+    width: 100%;
+    background: rgba(245,239,228,0.06);
+    border: 1px solid rgba(201,148,58,0.25);
+    border-radius: 4px;
+    padding: 11px 14px;
+    font-family: 'Crimson Pro', serif;
+    font-size: 1rem;
+    color: var(--parchment);
+    outline: none;
+    transition: border-color 0.18s;
+  }
+  .auth-input:focus { border-color: var(--gold); }
+  .auth-input::placeholder { color: rgba(245,239,228,0.25); }
+
+  .auth-btn {
+    width: 100%;
+    padding: 13px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem; letter-spacing: 0.14em;
+    text-transform: uppercase;
+    border: none; border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.18s, transform 0.1s;
+  }
+  .auth-btn:active { transform: scale(0.98); }
+  .auth-btn.primary {
+    background: var(--gold); color: var(--ink); font-weight: 700;
+  }
+  .auth-btn.primary:hover { background: var(--gold-lt); }
+  .auth-btn.primary:disabled { background: var(--sepia); cursor: not-allowed; opacity: 0.6; }
+
+  .auth-divider {
+    display: flex; align-items: center; gap: 12px;
+    color: var(--sepia); font-size: 0.75rem;
+    font-family: 'Space Mono', monospace;
+  }
+  .auth-divider::before, .auth-divider::after {
+    content: ''; flex: 1;
+    border-top: 1px solid rgba(201,148,58,0.2);
+  }
+
+  .google-btn {
+    width: 100%;
+    padding: 12px;
+    background: rgba(245,239,228,0.06);
+    border: 1px solid rgba(201,148,58,0.25);
+    border-radius: 4px;
+    color: var(--parchment);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem; letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: background 0.18s, border-color 0.18s;
+  }
+  .google-btn:hover { background: rgba(245,239,228,0.11); border-color: rgba(201,148,58,0.5); }
+  .google-icon { width: 18px; height: 18px; flex-shrink: 0; }
+
+  .auth-error {
+    background: rgba(220,50,50,0.12);
+    border: 1px solid rgba(220,50,50,0.35);
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    color: #f87171;
+    display: none;
+  }
+  .auth-error.show { display: block; }
+  .auth-success {
+    background: rgba(50,200,100,0.1);
+    border: 1px solid rgba(50,200,100,0.3);
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    color: #6ee7b7;
+    display: none; text-align: center;
+  }
+  .auth-success.show { display: block; }
+
+  /* User badge in header */
+  .user-badge {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .user-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(201,148,58,0.2);
+    border: 1px solid rgba(201,148,58,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; color: var(--gold);
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+  }
+  .user-email {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem; color: var(--sepia);
+    letter-spacing: 0.06em;
+    max-width: 160px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .signout-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem; letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border: 1px solid rgba(201,148,58,0.3);
+    background: transparent; color: var(--sepia);
+    border-radius: 2px; cursor: pointer;
+    transition: all 0.18s;
+  }
+  .signout-btn:hover { color: var(--gold); border-color: var(--gold); }
+
+  /* Supabase config prompt */
+  #config-prompt {
+    background: rgba(201,148,58,0.08);
+    border: 1px solid rgba(201,148,58,0.35);
+    border-radius: 6px;
+    padding: 18px 20px;
+    margin-bottom: 22px;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--cream);
+    display: none;
+  }
+  #config-prompt.show { display: block; }
+  #config-prompt code {
+    background: rgba(201,148,58,0.15);
+    padding: 2px 6px; border-radius: 3px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem; color: var(--gold-lt);
+  }
+  #config-prompt a {
+    color: var(--gold); text-decoration: underline;
   }
 </style>
 </head>
 <body>
 
+
+<!-- ═══════════════ AUTH SCREEN ═══════════════ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">Chest</div>
+    <div class="auth-tagline">the chess room</div>
+
+    <!-- Config notice (shown if Supabase keys not set) -->
+    <div id="config-prompt">
+      <strong style="color:var(--gold);">⚙ Setup required</strong><br>
+      To enable authentication, open this file, find the two lines near the bottom labelled
+      <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code>, and replace the placeholder
+      values with your project credentials from
+      <a href="https://supabase.com" target="_blank">supabase.com</a>.<br><br>
+      For Google login, also enable the Google provider in your Supabase dashboard under
+      <em>Authentication → Providers</em>.
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Create Account</button>
+    </div>
+
+    <!-- ── SIGN IN ── -->
+    <div class="auth-form" id="form-login">
+      <div id="login-error" class="auth-error"></div>
+      <div>
+        <div class="field-label">Email</div>
+        <input class="auth-input" id="login-email" type="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div>
+        <div class="field-label">Password</div>
+        <input class="auth-input" id="login-password" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="auth-btn primary" id="login-btn" onclick="handleLogin()">Sign In</button>
+      <div class="auth-divider">or</div>
+      <button class="google-btn" onclick="handleGoogleAuth()">
+        <svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
+    </div>
+
+    <!-- ── SIGN UP ── -->
+    <div class="auth-form hidden" id="form-signup">
+      <div id="signup-error" class="auth-error"></div>
+      <div id="signup-success" class="auth-success">Account created! Check your email to confirm, then sign in.</div>
+      <div>
+        <div class="field-label">Email</div>
+        <input class="auth-input" id="signup-email" type="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div>
+        <div class="field-label">Password</div>
+        <input class="auth-input" id="signup-password" type="password" placeholder="Min. 6 characters" autocomplete="new-password">
+      </div>
+      <div>
+        <div class="field-label">Confirm Password</div>
+        <input class="auth-input" id="signup-confirm" type="password" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <button class="auth-btn primary" id="signup-btn" onclick="handleSignup()">Create Account</button>
+      <div class="auth-divider">or</div>
+      <button class="google-btn" onclick="handleGoogleAuth()">
+        <svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
+    </div>
+  </div>
+</div>
 <header>
   <div class="logo">Chest <span>the chess room</span></div>
-  <div class="header-meta" id="clock-display">──</div>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div id="user-badge" class="user-badge" style="display:none;">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <div class="user-email" id="user-email"></div>
+      <button class="signout-btn" onclick="handleSignOut()">Sign out</button>
+    </div>
+    <div class="header-meta" id="clock-display">──</div>
+  </div>
 </header>
 
 <main>
@@ -407,6 +720,15 @@
         </div>
       </div>
 
+      <div class="panel-box" id="difficulty-panel">
+        <div class="panel-title">Difficulty</div>
+        <div class="mode-row">
+          <button class="diff-btn active" id="diff-amala" onclick="setDifficulty('amala')">🍲 Amala</button>
+          <button class="diff-btn" id="diff-eba" onclick="setDifficulty('eba')">🟡 Eba</button>
+          <button class="diff-btn" id="diff-fufu" onclick="setDifficulty('fufu')">⚪ Fufu</button>
+        </div>
+      </div>
+
       <div class="panel-box">
         <div class="panel-title">Status</div>
         <div id="status-text">White to move.</div>
@@ -435,16 +757,14 @@
 
     <!-- BOARD -->
     <div class="board-container">
-      <div class="rank-labels" id="rank-labels">
-        <span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
-      </div>
-      <div style="display:flex; flex-direction:column; align-items:flex-start;">
-        <div style="margin-left:28px;">
-          <div id="chess-board"></div>
-          <div class="file-labels" id="file-labels">
-            <span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span><span>g</span><span>h</span>
-          </div>
+      <div class="board-and-ranks">
+        <div class="rank-labels" id="rank-labels">
+          <span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
         </div>
+        <div id="chess-board"></div>
+      </div>
+      <div class="file-labels" id="file-labels">
+        <span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span><span>g</span><span>h</span>
       </div>
     </div>
 
@@ -506,6 +826,7 @@ let selectedSq = -1;
 let legalMovesCache = null;
 let boardFlipped = false;
 let gameMode = '2p'; // '2p', 'ai-white', 'ai-black'
+let difficulty = 'amala'; // 'amala' (easy), 'eba' (medium), 'fufu' (hard)
 let gameOver = false;
 
 // Captured pieces
@@ -915,19 +1236,32 @@ function getAIMove(){
   const legals=getLegalMoves(board,color,enPassantSq,castleRights);
   if(legals.length===0) return null;
   const maximizing=color===WHITE;
+
+  // ── Difficulty settings ──
+  // amala (easy):  depth 1, 60% chance of picking a random move instead
+  // eba (medium):  depth 2, 25% chance of a random move, slight noise
+  // fufu (hard):   depth 4, pure best move
+  const cfg = {
+    amala: { depth:1, randomChance:0.60, noise:80 },
+    eba:   { depth:2, randomChance:0.22, noise:30 },
+    fufu:  { depth:4, randomChance:0.00, noise:0  },
+  }[difficulty] || { depth:2, randomChance:0.22, noise:30 };
+
+  // Random blunder: just pick a random legal move
+  if(Math.random() < cfg.randomChance){
+    return legals[Math.floor(Math.random()*legals.length)];
+  }
+
   let bestScore=maximizing?-Infinity:Infinity;
   let bestMove=legals[0];
-  // Shuffle for variety
+  // Shuffle first for variety among equal moves
   legals.sort(()=>Math.random()-0.5);
-  legals.sort((a,b2)=>{
-    const ca=board[a.to]?PIECE_VAL[board[a.to]]:0;
-    const cb=board[b2.to]?PIECE_VAL[board[b2.to]]:0;
-    return (maximizing?1:-1)*(cb-ca);
-  });
   for(const m of legals){
     const nb=applyMoveToBoard(board,m);
     const newEP=m.doublePush?(m.from+m.to)/2:-1;
-    const score=minimax(nb,3,-Infinity,Infinity,!maximizing,newEP,castleRights);
+    let score=minimax(nb,cfg.depth,-Infinity,Infinity,!maximizing,newEP,castleRights);
+    // Add evaluation noise for lower difficulties
+    if(cfg.noise>0) score += (Math.random()-0.5)*cfg.noise*2;
     if(maximizing?score>bestScore:score<bestScore){
       bestScore=score; bestMove=m;
     }
@@ -1192,13 +1526,22 @@ function flipBoard(){
 
 function setMode(mode){
   gameMode=mode;
-  ['2p','ai-white','ai-black'].forEach(m=>{
-    document.getElementById('mode-'+m.replace('-','_')||'mode-'+m)?.classList.remove('active');
-  });
   document.getElementById('mode-2p').classList.toggle('active',mode==='2p');
   document.getElementById('mode-ai-w').classList.toggle('active',mode==='ai-white');
   document.getElementById('mode-ai-b').classList.toggle('active',mode==='ai-black');
+  // Show difficulty panel only when playing vs AI
+  const diffPanel=document.getElementById('difficulty-panel');
+  if(mode==='2p') diffPanel.classList.remove('visible');
+  else diffPanel.classList.add('visible');
   newGame();
+}
+
+function setDifficulty(level){
+  difficulty=level;
+  ['amala','eba','fufu'].forEach(d=>{
+    document.getElementById('diff-'+d).classList.toggle('active',d===level);
+  });
+
 }
 
 // ── Clock display ──
@@ -1214,7 +1557,153 @@ setInterval(updateClock,1000); updateClock();
 // ── Init ──
 initBoard();
 updateUI();
+
+
+// ═══════════════════════════════════════════════════════════
+//  SUPABASE AUTH
+//  ► Replace the two placeholder values below with your
+//    Supabase project URL and anon key from:
+//    https://supabase.com → Project Settings → API
+// ═══════════════════════════════════════════════════════════
+const SUPABASE_URL      = 'https://rkazkhvitmxfhaheoeui.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_u0SVpH3ncwPIopfL-CJ0UQ_KGoEMfhd';
+
+let supabase = null;
+let currentUser = null;
+
+function initSupabase(){
+  if(SUPABASE_URL==='YOUR_SUPABASE_URL'||SUPABASE_ANON_KEY==='YOUR_SUPABASE_ANON_KEY'){
+    document.getElementById('config-prompt').classList.add('show');
+    return false;
+  }
+  try {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return true;
+  } catch(e) {
+    console.error('Supabase init error:', e);
+    return false;
+  }
+}
+
+async function checkSession(){
+  if(!supabase) return;
+  const { data:{ session } } = await supabase.auth.getSession();
+  if(session?.user) onSignedIn(session.user);
+  // Listen for auth state changes (e.g. Google OAuth redirect)
+  supabase.auth.onAuthStateChange((_event, session) => {
+    if(session?.user) onSignedIn(session.user);
+    else onSignedOut();
+  });
+}
+
+function onSignedIn(user){
+  currentUser = user;
+  // Hide auth screen, show game
+  document.getElementById('auth-screen').classList.add('hidden');
+  // Show user badge
+  const email = user.email || user.user_metadata?.email || '';
+  const initials = email ? email[0].toUpperCase() : '?';
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-email').textContent = email;
+  document.getElementById('user-badge').style.display = 'flex';
+}
+
+function onSignedOut(){
+  currentUser = null;
+  document.getElementById('auth-screen').classList.remove('hidden');
+  document.getElementById('user-badge').style.display = 'none';
+}
+
+// ── Tab switching ──
+function switchTab(tab){
+  document.getElementById('form-login').classList.toggle('hidden', tab!=='login');
+  document.getElementById('form-signup').classList.toggle('hidden', tab!=='signup');
+  document.getElementById('tab-login').classList.toggle('active', tab==='login');
+  document.getElementById('tab-signup').classList.toggle('active', tab==='signup');
+  clearAuthErrors();
+}
+
+function clearAuthErrors(){
+  ['login-error','signup-error'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.textContent=''; el.classList.remove('show');
+  });
+  document.getElementById('signup-success').classList.remove('show');
+}
+
+function showError(id, msg){
+  const el=document.getElementById(id);
+  el.textContent=msg; el.classList.add('show');
+}
+
+// ── Email/password sign in ──
+async function handleLogin(){
+  if(!supabase){ showError('login-error','Supabase not configured. See setup instructions above.'); return; }
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if(!email||!password){ showError('login-error','Please enter your email and password.'); return; }
+  const btn=document.getElementById('login-btn');
+  btn.disabled=true; btn.textContent='Signing in…';
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  btn.disabled=false; btn.textContent='Sign In';
+  if(error){ showError('login-error', error.message); return; }
+  onSignedIn(data.user);
+}
+
+// ── Email/password sign up ──
+async function handleSignup(){
+  if(!supabase){ showError('signup-error','Supabase not configured. See setup instructions above.'); return; }
+  const email    = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password').value;
+  const confirm  = document.getElementById('signup-confirm').value;
+  if(!email||!password){ showError('signup-error','Please fill in all fields.'); return; }
+  if(password.length<6){ showError('signup-error','Password must be at least 6 characters.'); return; }
+  if(password!==confirm){ showError('signup-error','Passwords do not match.'); return; }
+  const btn=document.getElementById('signup-btn');
+  btn.disabled=true; btn.textContent='Creating account…';
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  btn.disabled=false; btn.textContent='Create Account';
+  if(error){ showError('signup-error', error.message); return; }
+  // If email confirmation is required
+  if(data.user && !data.session){
+    document.getElementById('signup-success').classList.add('show');
+  } else if(data.user){
+    onSignedIn(data.user);
+  }
+}
+
+// ── Google OAuth ──
+async function handleGoogleAuth(){
+  if(!supabase){
+    showError('login-error','Supabase not configured. See setup instructions above.');
+    showError('signup-error','Supabase not configured. See setup instructions above.');
+    return;
+  }
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if(error) showError('login-error', error.message);
+}
+
+// ── Sign out ──
+async function handleSignOut(){
+  if(supabase) await supabase.auth.signOut();
+  onSignedOut();
+}
+
+// ── Keyboard: Enter submits the active form ──
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Enter') return;
+  const loginHidden = document.getElementById('form-login').classList.contains('hidden');
+  if(!loginHidden) handleLogin();
+  else handleSignup();
+});
+
+// ── Boot ──
+const sbReady = initSupabase();
+if(sbReady) checkSession();
+
 </script>
 </body>
 </html>
-
