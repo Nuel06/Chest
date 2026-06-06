@@ -1566,9 +1566,9 @@ updateUI();
 //    https://supabase.com → Project Settings → API
 // ═══════════════════════════════════════════════════════════
 const SUPABASE_URL      = 'https://rkazkhvitmxfhaheoeui.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_u0SVpH3ncwPIopfL-CJ0UQ_KGoEMfhd';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrYXpraHZpdG14ZmhhaGVvZXVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3MTA2NjYsImV4cCI6MjA5NjI4NjY2Nn0.h1AIpL_xb8N0DFfS2yp00vePfObmlAgqYqB0UKs0KG0';
 
-let supabase = null;
+let sbClient = null;
 let currentUser = null;
 
 function initSupabase(){
@@ -1577,7 +1577,7 @@ function initSupabase(){
     return false;
   }
   try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     return true;
   } catch(e) {
     console.error('Supabase init error:', e);
@@ -1587,10 +1587,10 @@ function initSupabase(){
 
 async function checkSession(){
   if(!supabase) return;
-  const { data:{ session } } = await supabase.auth.getSession();
+  const { data:{ session } } = await sbClient.auth.getSession();
   if(session?.user) onSignedIn(session.user);
   // Listen for auth state changes (e.g. Google OAuth redirect)
-  supabase.auth.onAuthStateChange((_event, session) => {
+  sbClient.auth.onAuthStateChange((_event, session) => {
     if(session?.user) onSignedIn(session.user);
     else onSignedOut();
   });
@@ -1638,13 +1638,13 @@ function showError(id, msg){
 
 // ── Email/password sign in ──
 async function handleLogin(){
-  if(!supabase){ showError('login-error','Supabase not configured. See setup instructions above.'); return; }
+  if(!sbClient){ showError('login-error','Supabase not configured. See setup instructions above.'); return; }
   const email    = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
   if(!email||!password){ showError('login-error','Please enter your email and password.'); return; }
   const btn=document.getElementById('login-btn');
   btn.disabled=true; btn.textContent='Signing in…';
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
   btn.disabled=false; btn.textContent='Sign In';
   if(error){ showError('login-error', error.message); return; }
   onSignedIn(data.user);
@@ -1652,7 +1652,7 @@ async function handleLogin(){
 
 // ── Email/password sign up ──
 async function handleSignup(){
-  if(!supabase){ showError('signup-error','Supabase not configured. See setup instructions above.'); return; }
+  if(!sbClient){ showError('signup-error','Supabase not configured. See setup instructions above.'); return; }
   const email    = document.getElementById('signup-email').value.trim();
   const password = document.getElementById('signup-password').value;
   const confirm  = document.getElementById('signup-confirm').value;
@@ -1661,7 +1661,7 @@ async function handleSignup(){
   if(password!==confirm){ showError('signup-error','Passwords do not match.'); return; }
   const btn=document.getElementById('signup-btn');
   btn.disabled=true; btn.textContent='Creating account…';
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await sbClient.auth.signUp({ email, password });
   btn.disabled=false; btn.textContent='Create Account';
   if(error){ showError('signup-error', error.message); return; }
   // If email confirmation is required
@@ -1674,12 +1674,12 @@ async function handleSignup(){
 
 // ── Google OAuth ──
 async function handleGoogleAuth(){
-  if(!supabase){
+  if(!sbClient){
     showError('login-error','Supabase not configured. See setup instructions above.');
     showError('signup-error','Supabase not configured. See setup instructions above.');
     return;
   }
-  const { error } = await supabase.auth.signInWithOAuth({
+  const { error } = await sbClient.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: window.location.href }
   });
@@ -1688,7 +1688,7 @@ async function handleGoogleAuth(){
 
 // ── Sign out ──
 async function handleSignOut(){
-  if(supabase) await supabase.auth.signOut();
+  if(sbClient) await sbClient.auth.signOut();
   onSignedOut();
 }
 
