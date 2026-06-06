@@ -1744,11 +1744,14 @@ function initSupabase(){
 
 async function checkSession(){
   if(!sbClient)return;
-  const{data:{session}}=await sbClient.auth.getSession();
-  if(session?.user)onSignedIn(session.user);
+  // Register the listener FIRST so it catches the SIGNED_IN event
+  // that Supabase fires when it detects an OAuth redirect hash in the URL.
   sbClient.auth.onAuthStateChange((_event,session)=>{
     if(session?.user)onSignedIn(session.user);else onSignedOut();
   });
+  // Then check for an existing session (covers page refresh while logged in).
+  const{data:{session}}=await sbClient.auth.getSession();
+  if(session?.user)onSignedIn(session.user);
 }
 
 function onSignedIn(user){
@@ -1815,7 +1818,8 @@ async function handleSignup(){
 
 async function handleGoogleAuth(){
   if(!sbClient){showError('login-error','Supabase not configured.');showError('signup-error','Supabase not configured.');return;}
-  const{error}=await sbClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href}});
+  const redirectTo=window.location.origin+window.location.pathname;
+  const{error}=await sbClient.auth.signInWithOAuth({provider:'google',options:{redirectTo}});
   if(error)showError('login-error',error.message);
 }
 
